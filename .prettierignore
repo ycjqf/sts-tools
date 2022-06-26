@@ -1,0 +1,10 @@
+# dependency folders
+node_modules
+
+# temp folders
+dist
+docs
+
+# exact files
+package-lock.json
+package.json
