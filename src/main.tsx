@@ -1,16 +1,29 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
+import { createClient, Provider } from "urql";
 
-function App() {
-  return (
-    <div className="container mx-auto my-24">
-      <h1 className="text-center text-slate-700">this page is still under development.</h1>
-    </div>
-  );
-}
+import { DEFAULT_ENDPOINT } from "@/configs";
+import Home from "@/pages/Home";
+
+const client = createClient({
+  url: ((): string => {
+    const endPoint = localStorage.getItem("EndPoint");
+    if (typeof endPoint !== "string" || endPoint.trim().length === 0) return DEFAULT_ENDPOINT;
+    return endPoint.trim();
+  })(),
+  fetchOptions: () => {
+    return {
+      headers: {
+        ApiKey: localStorage.getItem("ApiKey") || "",
+      },
+    };
+  },
+});
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <App />
+    <Provider value={client}>
+      <Home />
+    </Provider>
   </React.StrictMode>
 );

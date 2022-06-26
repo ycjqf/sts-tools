@@ -11,6 +11,10 @@ export default defineConfig({
         find: "@",
         replacement: path.resolve(__dirname, "./src"),
       },
+      {
+        find: "@dist",
+        replacement: path.resolve(__dirname, "./dist"),
+      },
     ],
   },
   base: "./",
