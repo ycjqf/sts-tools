@@ -1,6 +1,6 @@
 ### Cors Stash
 
-Add code below to nginx config file. For homebrew(apple sillicon) installed, its gonna be `/opt/homebrew/etc/nginx/nginx.conf`. Change the proxy_pass by neede.
+Add code below to nginx config file. For homebrew(apple sillicon) installed, its gonna be `/opt/homebrew/etc/nginx/nginx.conf`. Change the proxy_pass by need.
 
 ```conf
     server {
