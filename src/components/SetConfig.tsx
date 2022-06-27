@@ -5,9 +5,11 @@ import useLocalStorageState from "use-local-storage-state";
 import { DEFAULT_ENDPOINT } from "@/configs";
 
 export default function SerConfig(props: { isOpen: boolean; onClose: () => void }) {
-  const [endPoint] = useLocalStorageState<string>("EndPoint");
-  const [apiKey] = useLocalStorageState<string>("ApiKey");
-  const [performerParametersTagId] = useLocalStorageState<string>("PerformerParametersTagId");
+  const [endPoint, setEndPoint] = useLocalStorageState<string>("EndPoint");
+  const [apiKey, setApiKey] = useLocalStorageState<string>("ApiKey");
+  const [performerParametersTagId, setPerformerParametersTagId] = useLocalStorageState<string>(
+    "PerformerParametersTagId"
+  );
 
   const [endPointInputing, setEndPointInputing] = useState(endPoint);
   const [apiKeyInputing, setApiKeyInputing] = useState(apiKey);
@@ -18,10 +20,10 @@ export default function SerConfig(props: { isOpen: boolean; onClose: () => void 
     const isPassed = isValidHttpUrl(endPointInputing!) && apiKeyInputing!.trim().length > 0;
     if (!isPassed) return alert("please check again.");
 
-    // setApiKey(apiKeyInputing);
-    // setEndPoint(endPointInputing);
-    // SetPerformerParametersTagId(performerParametersTagIdInputing);
-    // props.onClose();
+    setApiKey(apiKeyInputing);
+    setEndPoint(endPointInputing);
+    setPerformerParametersTagId(performerParametersTagIdInputing);
+    props.onClose();
   }
 
   return (
