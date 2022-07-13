@@ -5,18 +5,9 @@ import {
   useFindTagsQuery,
 } from "@dist/graphql";
 import { Listbox, Transition } from "@headlessui/react";
-import { CheckIcon, SelectorIcon } from "@heroicons/react/solid";
+import { CheckIcon, SelectorIcon, XCircleIcon } from "@heroicons/react/solid";
 import { Fragment, useEffect, useState } from "react";
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Legend,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import useLocalStorageState from "use-local-storage-state";
 
 import SkinPeek from "@/components/SkinPeek";
@@ -120,17 +111,15 @@ export default function Home() {
     return (
       <Listbox value={props.filter.activeParameter} onChange={props.onSelectedChange}>
         <div className="flex items-center">
-          <div className="mr-2 whitespace-nowrap text-sm text-slate-500">
+          <div className="mr-4 whitespace-nowrap text-sm text-slate-500">
             {props.filter.fatherTag.name}
           </div>
-          <div className="relative mt-1 w-full">
+          <div className="relative w-full">
             <Listbox.Button
-              className="relative w-full cursor-default rounded-lg bg-white py-2 
-            pl-3 pr-10 text-left shadow focus:outline-none focus-visible:border-indigo-500
-            focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-opacity-75
-            focus-visible:ring-offset-2 focus-visible:ring-offset-orange-300 sm:text-sm"
+              className="relative w-full cursor-default rounded border py-2 
+              pl-3 pr-10 text-left sm:text-sm"
             >
-              <span className="block truncate">
+              <span className={`block truncate text-slate-300`}>
                 {props.filter.activeParameter?.name || "Not Selected"}
               </span>
               <span
@@ -147,16 +136,15 @@ export default function Home() {
               leaveTo="opacity-0"
             >
               <Listbox.Options
-                className="absolute z-30 mt-1 max-h-60 w-full overflow-auto 
-              rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black 
-                ring-opacity-5 focus:outline-none sm:text-sm"
+                className="absolute z-30 mt-2 max-h-60 w-full overflow-auto 
+                rounded-md bg-[#30404d] py-1 text-base sm:text-sm"
               >
                 {options.map((option) => (
                   <Listbox.Option
                     key={option.id}
                     className={({ active }) =>
                       `relative cursor-default select-none py-2 pl-10 pr-4 ${
-                        active ? "bg-amber-100 text-amber-900" : "text-gray-900"
+                        active ? "bg-[#137cbd] text-white" : "text-slate-300"
                       }`
                     }
                     value={option}
@@ -185,62 +173,91 @@ export default function Home() {
               </Listbox.Options>
             </Transition>
           </div>
+
+          <button
+            className={`${
+              props.filter.activeParameter ? "text-slate-300" : "text-slate-500"
+            } ml-2 transition-colors`}
+            onClick={() => props.onSelectedChange(undefined)}
+          >
+            <XCircleIcon className="h-6 w-6" />
+          </button>
         </div>
       </Listbox>
     );
   }
 
   return (
-    <div>
+    <div className="min-h-screen bg-[#202b33]">
       {performerParametersReply.fetching ? (
-        <span>loading</span>
+        <HomeStatus title="Loading" message="Fetching Data, please wait." />
       ) : typeof performerParametersReply.error !== "undefined" ||
         typeof performerParametersReply.data === "undefined" ? (
-        <span>error</span>
+        <HomeStatus
+          title="Request Error"
+          message={performerParametersReply.error?.message || "Encountered an unknown error."}
+        />
       ) : (
-        <>
-          <div className="mx-4 my-2 grid grid-cols-1 gap-x-4 gap-y-2 md:grid-cols-2 xl:grid-cols-4">
-            {parameterFilters.map((f) => {
-              return (
-                <ParameterSelector
-                  key={f.fatherTag.id}
-                  filter={f}
-                  onSelectedChange={(newParamter) => {
-                    f.activeParameter = newParamter;
-                    setParameterFilters([...parameterFilters]);
-                  }}
-                />
-              );
-            })}
+        <div>
+          <div className="px-4">
+            <div className="grid grid-cols-1 gap-x-8 gap-y-4 py-8 md:grid-cols-2 xl:grid-cols-4">
+              {parameterFilters.map((f) => {
+                return (
+                  <ParameterSelector
+                    key={f.fatherTag.id}
+                    filter={f}
+                    onSelectedChange={(newParamter) => {
+                      f.activeParameter = newParamter;
+                      setParameterFilters([...parameterFilters]);
+                    }}
+                  />
+                );
+              })}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4">
+              {finalChartResult.map((r, index) => (
+                <ResponsiveContainer key={index} height={300}>
+                  <BarChart
+                    data={r.types}
+                    margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
+                    style={{
+                      fontSize: "12px",
+                    }}
+                  >
+                    <XAxis dataKey="type" />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar dataKey="count" fill="#8884d8" barSize={60} />
+                  </BarChart>
+                </ResponsiveContainer>
+              ))}
+            </div>
           </div>
 
-          <div className="grid grid-cols-3">
-            {finalChartResult.map((r, index) => (
-              <ResponsiveContainer key={index} height={300}>
-                <BarChart
-                  data={r.types}
-                  margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
-                  style={{
-                    fontSize: "12px",
-                  }}
-                >
-                  <CartesianGrid strokeDasharray="2 2" />
-                  <XAxis dataKey="type" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="count" fill="#8884d8" barSize={60} />
-                </BarChart>
-              </ResponsiveContainer>
-            ))}
-          </div>
-
-          <div className="m-[2px] grid grid-cols-7 gap-[2px]">
+          <div className="grid grid-cols-1 gap-[2px] md:grid-cols-3 xl:grid-cols-5">
             {filteredPerformers.data?.findPerformers.performers.map((p) => (
-              <SkinPeek key={p.id} performer={p} />
+              <SkinPeek
+                tagIds={filterIds}
+                key={p.id}
+                performer={p}
+                onTagClick={(tag) => {
+                  const CataloguesWithThisParameter = parameterFilters.filter((f) => {
+                    const tags = f.fatherTag.children.filter((t) => t.id === tag.id);
+                    return tags.length > 0;
+                  });
+
+                  CataloguesWithThisParameter.map((c) => {
+                    if (c.activeParameter && c.activeParameter.id === tag.id)
+                      c.activeParameter = undefined;
+                    else c.activeParameter = c.fatherTag.children.find((t) => t.id === tag.id);
+                  });
+                  setParameterFilters([...parameterFilters]);
+                }}
+              />
             ))}
           </div>
-        </>
+        </div>
       )}
     </div>
   );
@@ -252,4 +269,13 @@ interface FinalChartResult {
     type: string;
     count: number;
   }[];
+}
+
+function HomeStatus(props: { title: string; message: string }) {
+  return (
+    <div className="flex flex-col items-center px-2 py-12 text-white">
+      <h4 className="mb-1 text-2xl">{props.title}</h4>
+      <span className="text-sm">{props.message}</span>
+    </div>
+  );
 }

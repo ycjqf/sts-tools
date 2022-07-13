@@ -2,25 +2,30 @@ import { FindPerformersQuery } from "@dist/graphql";
 
 export default function SkinPeek(props: {
   performer: FindPerformersQuery["findPerformers"]["performers"][number];
+  tagIds: string[];
+  onTagClick?: (
+    tag: FindPerformersQuery["findPerformers"]["performers"][number]["tags"][number]
+  ) => void;
 }) {
   return (
     <div className="relative h-0 w-full pt-[100%]">
       <div className="absolute inset-0">
         <div
-          className={`group relative z-20 flex h-full w-full flex-col justify-between p-2 ${
+          className={`relative z-20 flex h-full w-full flex-col justify-between p-2 ${
             !props.performer.image_path && "bg-slate-300"
           }`}
         >
-          <div
-            className={`flex h-fit flex-wrap gap-x-1 gap-y-1 ${
-              props.performer.image_path &&
-              "opacity-50 transition-opacity duration-100 group-hover:opacity-75"
-            }`}
-          >
+          <div className={`flex h-fit flex-wrap gap-x-1 gap-y-1`}>
             {props.performer.tags.map((t) => (
               <div
                 key={t.id}
-                className="cursor-pointer whitespace-nowrap rounded bg-slate-600 px-[6px] py-[2px] text-[10px] text-white"
+                className={`cursor-pointer whitespace-nowrap rounded bg-opacity-75 
+                px-[6px] py-[2px] text-[10px] ${
+                  props.tagIds.includes(t.id)
+                    ? "bg-slate-200 text-slate-800"
+                    : "bg-slate-800 text-slate-200"
+                }`}
+                onClick={() => props.onTagClick && props.onTagClick(t)}
               >
                 {t.name}
               </div>

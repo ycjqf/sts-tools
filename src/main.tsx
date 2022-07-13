@@ -47,18 +47,17 @@ function App() {
       <Provider value={client}>
         <SetConfig isOpen={isOpen} onClose={() => setIsOpen(false)} />
 
-        <div className="flex w-full items-center justify-between px-4 py-2">
-          <div>
-            <span>sts-tools</span>
-          </div>
-          <div>
-            <AdjustmentsIcon
-              className="h-6 w-6 cursor-pointer"
-              onClick={() => setIsOpen(!isOpen)}
-            />
-          </div>
+        <div className="flex h-12 w-full items-center justify-between bg-[#394b59] px-4 py-1">
+          <a href="/" className="block text-sm text-[#f5f8fa]">
+            sts-tools
+          </a>
+          <button
+            className="rounded border border-solid border-[#ffffff1a]"
+            onClick={() => setIsOpen(!isOpen)}
+          >
+            <AdjustmentsIcon className="mx-4 my-2 h-4 w-4 text-[#f5f8fa]" />
+          </button>
         </div>
-
         <Home />
       </Provider>
     </React.StrictMode>

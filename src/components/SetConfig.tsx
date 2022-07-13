@@ -53,69 +53,48 @@ export default function SerConfig(props: { isOpen: boolean; onClose: () => void 
               leaveTo="opacity-0 scale-95"
             >
               <Dialog.Panel
-                className="w-full max-w-md transform overflow-hidden rounded-2xl 
+                className="w-full max-w-md transform overflow-hidden rounded 
               bg-white p-6 text-left align-middle shadow-xl transition-all"
               >
-                <div className="mb-2">
+                <div className="mb-4">
                   <Dialog.Title
-                    as="h3"
-                    className="text-lg font-medium leading-6 
-                  text-gray-900"
+                    className="mb-2 text-2xl font-medium 
+                    leading-6 text-gray-900"
                   >
                     Config
                   </Dialog.Title>
-                  <div className="mt-2">
-                    <p className="text-sm text-gray-500">
-                      On how should I connect to the stash back-end graphql server.
-                    </p>
-                  </div>
+                  <p className="text-sm text-gray-500">
+                    On how should I connect to the stash back-end graphql server.
+                  </p>
+                </div>
+
+                <div className="mb-8 grid grid-cols-1 gap-y-4">
+                  <ConfigItem
+                    title="Aceess Token"
+                    originalValue={apiKey}
+                    placeholder="input new token"
+                    onChange={(newValue) => setApiKeyInputing(newValue)}
+                  />
+
+                  <ConfigItem
+                    title="GraphQL Endpoint"
+                    originalValue={endPoint || DEFAULT_ENDPOINT}
+                    placeholder="input new endpoint"
+                    onChange={(newValue) => setEndPointInputing(newValue)}
+                  />
+
+                  <ConfigItem
+                    title="Performer Catalogue Tag Id"
+                    originalValue={performerParametersTagId}
+                    placeholder="input new performer catalogue tag id"
+                    onChange={(newValue) => setPerformerParametersTagIdInputing(newValue)}
+                  />
                 </div>
 
                 <div>
-                  <div>
-                    <span className="mr-1">Current Token</span>
-                    <p className={`${apiKey ? "" : "text-slate-400"} w-full`}>
-                      {apiKey || `nothing`}
-                    </p>
-                  </div>
-                  <input
-                    type="text"
-                    placeholder="input new token"
-                    value={apiKeyInputing}
-                    onChange={(e) => setApiKeyInputing(e.currentTarget.value)}
-                  />
-
-                  <div>
-                    <span className="mr-1">Current EndPoint</span>
-                    <span className={`${endPoint ? "" : "text-slate-400"}`}>
-                      {endPoint || `default(${DEFAULT_ENDPOINT})`}
-                    </span>
-                  </div>
-                  <input
-                    type="text"
-                    placeholder="input new end point"
-                    value={endPointInputing}
-                    onChange={(e) => setEndPointInputing(e.currentTarget.value)}
-                  />
-
-                  <div>
-                    <span className="mr-1">Current performerParametersTagId</span>
-                    <span className={`${endPoint ? "" : "text-slate-400"}`}>
-                      {performerParametersTagId}
-                    </span>
-                  </div>
-                  <input
-                    type="text"
-                    placeholder="input new performerParametersTagId"
-                    value={performerParametersTagIdInputing}
-                    onChange={(e) => setPerformerParametersTagIdInputing(e.currentTarget.value)}
-                  />
-                </div>
-
-                <div className="mt-4">
                   <button
                     type="button"
-                    className="inline-flex justify-center rounded-md border border-transparent bg-blue-100 px-4 py-2 text-sm font-medium text-blue-900 hover:bg-blue-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                    className="inline-flex justify-center rounded border border-transparent bg-blue-100 px-4 py-2 text-sm font-medium text-blue-900 hover:bg-blue-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
                     onClick={beforeClose}
                   >
                     Save
@@ -127,6 +106,36 @@ export default function SerConfig(props: { isOpen: boolean; onClose: () => void 
         </div>
       </Dialog>
     </Transition>
+  );
+}
+
+function ConfigItem(props: {
+  title: string;
+  placeholder: string;
+  originalValue: string | undefined;
+  onChange: (newValue: string) => void;
+}) {
+  return (
+    <div>
+      <span className="mr-1 font-semibold">{props.title}</span>
+      <p
+        className={`${
+          props.originalValue ? "text-slate-400" : "text-purple-400"
+        } mb-2 break-words px-4 text-sm`}
+      >
+        {props.originalValue || "<NOT-SET>"}
+      </p>
+      <input
+        className="w-full rounded border px-4 py-2"
+        type="text"
+        placeholder="input new performerParametersTagId"
+        defaultValue={props.originalValue}
+        onChange={(e) => {
+          console.log(e);
+          props.onChange(e.currentTarget.value);
+        }}
+      />
+    </div>
   );
 }
 
