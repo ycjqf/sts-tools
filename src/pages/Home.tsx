@@ -8,26 +8,29 @@ import { Listbox, Transition } from "@headlessui/react";
 import { CheckIcon, SelectorIcon, XCircleIcon } from "@heroicons/react/solid";
 import { Fragment, useEffect, useState } from "react";
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import useLocalStorageState from "use-local-storage-state";
 
+import HomeStatus from "@/components/HomeStatus";
 import SkinPeek from "@/components/SkinPeek";
+import { useStore } from "@/configs";
 
 export default function Home() {
   document.title = "sts-tools | home";
-  const [performerParametersTagId] = useLocalStorageState<string>("PerformerParametersTagId");
-  const [finalChartResult, setFinalChartResult] = useState<FinalChartResult[]>([]);
 
+  const performerCatalogueTagId = useStore((state) => state.performerCatalogueTagId);
+
+  const [finalChartResult, setFinalChartResult] = useState<FinalChartResult[]>([]);
   const [performerParametersReply] = useFindTagsQuery({
     variables: {
       tag_filter: {
         parents: {
           modifier: CriterionModifier.IncludesAll,
-          value: [performerParametersTagId!],
+          value: [performerCatalogueTagId!],
         },
       },
     },
   });
-  const isFetchedAndNoError =
+
+  const isCatalogueFetched =
     !performerParametersReply.fetching &&
     !performerParametersReply.error &&
     performerParametersReply.data;
@@ -39,6 +42,7 @@ export default function Home() {
       fatherTag: FindTagsQuery["findTags"]["tags"][number];
     }>
   );
+
   const filterIds: string[] = parameterFilters
     .filter((t) => typeof t.activeParameter !== "undefined")
     .map((t) => t.activeParameter!.id);
@@ -53,11 +57,11 @@ export default function Home() {
         },
       },
     },
-    pause: !isFetchedAndNoError,
+    pause: !isCatalogueFetched,
   });
 
   useEffect(() => {
-    if (isFetchedAndNoError)
+    if (isCatalogueFetched)
       setParameterFilters(
         performerParametersReply.data!.findTags.tags.map((t) => {
           return {
@@ -69,7 +73,7 @@ export default function Home() {
   }, [performerParametersReply]);
 
   useEffect(() => {
-    if (!isFetchedAndNoError) return;
+    if (!isCatalogueFetched) return;
     if (filteredPerformers.fetching) return;
     if (filteredPerformers.error) return;
     if (!filteredPerformers.data) return;
@@ -96,7 +100,7 @@ export default function Home() {
     });
     res.forEach((r) => r.types.sort((a, b) => b.count - a.count));
     setFinalChartResult(res);
-  }, [filteredPerformers, isFetchedAndNoError]);
+  }, [filteredPerformers, isCatalogueFetched]);
 
   function ParameterSelector(props: {
     filter: typeof parameterFilters[number];
@@ -235,7 +239,7 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-[2px] md:grid-cols-3 xl:grid-cols-5">
+          <div className="grid grid-cols-1 gap-[2px] md:grid-cols-4 xl:grid-cols-6">
             {filteredPerformers.data?.findPerformers.performers.map((p) => (
               <SkinPeek
                 tagIds={filterIds}
@@ -269,13 +273,4 @@ interface FinalChartResult {
     type: string;
     count: number;
   }[];
-}
-
-function HomeStatus(props: { title: string; message: string }) {
-  return (
-    <div className="flex flex-col items-center px-2 py-12 text-white">
-      <h4 className="mb-1 text-2xl">{props.title}</h4>
-      <span className="text-sm">{props.message}</span>
-    </div>
-  );
 }
