@@ -1,4 +1,5 @@
-import { FindTagsQuery } from "@dist/graphql";
+import { FindTagsQuery, useTagUpdateMutation } from "@dist/graphql";
+import { useEffect } from "react";
 
 function CatalogueFilter(props: {
   selector: PerformerCatalogueSelectorsType[number];
@@ -6,9 +7,33 @@ function CatalogueFilter(props: {
     newActiveOption: PerformerCatalogueSelectorsType[number]["activeOption"]
   ) => void;
 }) {
+  const [updateTagResult, updateTag] = useTagUpdateMutation();
+
+  function updateOption(option: typeof props.selector.options[number]) {
+    const newName = prompt(`change tag ${option.id}(${option.name}) into?`, option.name);
+    if (!newName) return;
+    console.log(option.id, option.name, newName);
+
+    updateTag({
+      input: {
+        id: option.id,
+        name: newName,
+      },
+    });
+  }
+
+  useEffect(() => {
+    if (updateTagResult.data) {
+      console.log(updateTagResult.data);
+    }
+    if (updateTagResult.error) {
+      console.log(updateTagResult.error);
+    }
+  }, [updateTagResult]);
+
   return (
-    <div className="inline-flex items-start whitespace-nowrap  text-sm">
-      <span className="mr-4 w-20 flex-shrink-0 text-[#47afff]">
+    <div className="inline-flex items-start whitespace-nowrap text-sm">
+      <span className="mr-2 w-8 flex-shrink-0 text-[#47afff]">
         {props.selector.catalogue.name}
       </span>
       <div className="inline-flex flex-wrap items-center gap-y-2 gap-x-3 whitespace-nowrap">
@@ -26,6 +51,10 @@ function CatalogueFilter(props: {
                   ? undefined
                   : option
               );
+            }}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              updateOption(option);
             }}
           >
             {option.name}

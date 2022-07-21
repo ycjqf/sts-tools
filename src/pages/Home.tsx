@@ -1,5 +1,13 @@
-import { CriterionModifier, useFindPerformersQuery, useFindTagsQuery } from "@dist/graphql";
+import {
+  CriterionModifier,
+  FindPerformersDocument,
+  FindPerformersResultType,
+  PerformerUpdateDocument,
+  useFindPerformersQuery,
+  useFindTagsQuery,
+} from "@dist/graphql";
 import { useEffect, useState } from "react";
+import { useClient } from "urql";
 
 import CatalogueCharts, { FinalChartResultType } from "@/components/CatalogueCharts";
 import CatalogueFilters, {
@@ -12,6 +20,7 @@ import { useStore } from "@/configs";
 export default function Home() {
   document.title = "sts-tools | home";
 
+  const client = useClient();
   const [pageStatus, setPageStatus] = useState<"loading" | "error" | "ready">("loading");
   const [statusMsg, setStatusMsg] = useState("loading data");
   const [finalChartResults, setFinalChartResults] = useState<FinalChartResultType[]>([]);
@@ -101,7 +110,7 @@ export default function Home() {
 
       // cobine catalogue name and its count array, to a new array to map charts
       return {
-        catalogue: selector.activeOption?.name || "unknown catalogue",
+        catalogue: selector.catalogue.name,
         types,
       };
     });
@@ -112,6 +121,72 @@ export default function Home() {
     setFinalChartResults(chartDatas.filter((t) => t.types.length !== 1));
 
     // ux: when first set ready there won't be 'loading' anymore
+
+    // fix performer tags
+    // only check for filter ids empty
+    if (performerCatalogueSelectedIds.length > 0) {
+      setPageStatus("ready");
+      return;
+    }
+    // for each catalogue eg "age"
+
+    performerCatalogueSelectors.map((selector) => {
+      // for each performer, checker whether contain just one for each
+      const defaultTag = selector.options.find(
+        (o) => o.name === `#${selector.catalogue.name.toLowerCase()}`
+      );
+      if (!defaultTag) {
+        console.log(`no tag with "#${selector.catalogue.name.toLowerCase()}" found, skip`);
+        return;
+      }
+
+      client
+        .query(FindPerformersDocument, {
+          filter: { per_page: -1 },
+          performer_filter: {
+            tags: {
+              modifier: CriterionModifier.Excludes,
+              value: [...selector.options.map((o) => o.id)],
+              depth: 0,
+            },
+          },
+        })
+        .toPromise()
+        .then((result) => {
+          const data = result.data.findPerformers as FindPerformersResultType | undefined;
+          if (!data) {
+            console.log(
+              `error searching performers exclude parameter of ${selector.catalogue.name}, skipped`
+            );
+            return;
+          }
+
+          if (data.count === 0) return;
+          console.log(`${data.count} performers missing ${selector.catalogue.name}, adding`);
+          data.performers.map((p) => {
+            client
+              .mutation(PerformerUpdateDocument, {
+                input: {
+                  id: p.id,
+                  tag_ids: [...p.tags.map((t) => t.id), defaultTag.id],
+                },
+              })
+              .toPromise()
+              .then((result) => {
+                if (result.error) {
+                  console.log(`failed to update "${p.name}" ${result.error.message}`);
+                }
+                if (result.data) {
+                  console.log(`successfully updated "${p.name}"`);
+                }
+              })
+              .catch((error) => {
+                console.log(`failed to update "${p.name}"`);
+                console.log(error);
+              });
+          });
+        });
+    });
     setPageStatus("ready");
   }, [isPerformersFetched, isCatalogueFetched]);
 
