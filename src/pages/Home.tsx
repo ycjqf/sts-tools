@@ -6,7 +6,7 @@ import {
   useFindPerformersQuery,
   useFindTagsQuery,
 } from "@dist/graphql";
-import { useEffect, useState } from "react";
+import { createContext, useEffect, useState } from "react";
 import { useClient } from "urql";
 
 import CatalogueCharts, { FinalChartResultType } from "@/components/CatalogueCharts";
@@ -16,6 +16,8 @@ import CatalogueFilters, {
 import HomeStatus from "@/components/HomeStatus";
 import SkinPeek from "@/components/SkinPeek";
 import { useStore } from "@/configs";
+
+export const HomeContext = createContext<PerformerCatalogueSelectorsType>([]);
 
 export default function Home() {
   document.title = "sts-tools | home";
@@ -212,40 +214,42 @@ export default function Home() {
           message={statusMsg}
         />
       ) : (
-        <div>
-          <CatalogueFilters
-            filters={performerCatalogueSelectors}
-            onFiltersChange={(newFilters) => {
-              setPerformerCatalogueSelectors([...newFilters]);
-            }}
-          />
-          <CatalogueCharts finalChartResults={finalChartResults} />
+        <HomeContext.Provider value={performerCatalogueSelectors}>
+          <div>
+            <CatalogueFilters
+              filters={performerCatalogueSelectors}
+              onFiltersChange={(newFilters) => {
+                setPerformerCatalogueSelectors([...newFilters]);
+              }}
+            />
+            <CatalogueCharts finalChartResults={finalChartResults} />
 
-          <div className="grid grid-cols-1 gap-[2px] md:grid-cols-4 xl:grid-cols-6">
-            {filteredPerformersResult.data?.findPerformers.performers.map((p) => (
-              <SkinPeek
-                filteredTagIds={performerCatalogueSelectedIds}
-                key={p.id}
-                performer={p}
-                onTagClick={(tag) => {
-                  const CataloguesWithThisParameter = performerCatalogueSelectors.filter(
-                    (f) => {
-                      const tags = f.options.filter((t) => t.id === tag.id);
-                      return tags.length > 0;
-                    }
-                  );
+            <div className="grid grid-cols-1 gap-[2px] md:grid-cols-4 xl:grid-cols-6">
+              {filteredPerformersResult.data?.findPerformers.performers.map((p) => (
+                <SkinPeek
+                  filteredTagIds={performerCatalogueSelectedIds}
+                  key={p.id}
+                  performer={p}
+                  onTagClick={(tag) => {
+                    const CataloguesWithThisParameter = performerCatalogueSelectors.filter(
+                      (f) => {
+                        const tags = f.options.filter((t) => t.id === tag.id);
+                        return tags.length > 0;
+                      }
+                    );
 
-                  CataloguesWithThisParameter.map((c) => {
-                    if (c.activeOption && c.activeOption.id === tag.id)
-                      c.activeOption = undefined;
-                    else c.activeOption = c.options.find((t) => t.id === tag.id);
-                  });
-                  setPerformerCatalogueSelectors([...performerCatalogueSelectors]);
-                }}
-              />
-            ))}
+                    CataloguesWithThisParameter.map((c) => {
+                      if (c.activeOption && c.activeOption.id === tag.id)
+                        c.activeOption = undefined;
+                      else c.activeOption = c.options.find((t) => t.id === tag.id);
+                    });
+                    setPerformerCatalogueSelectors([...performerCatalogueSelectors]);
+                  }}
+                />
+              ))}
+            </div>
           </div>
-        </div>
+        </HomeContext.Provider>
       )}
     </div>
   );
