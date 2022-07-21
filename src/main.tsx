@@ -1,12 +1,13 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { HashRouter, Route, Routes } from "react-router-dom";
 import { createClient, Provider } from "urql";
 
 import ConfigPanel from "@/components/ConfigPanel";
 import TopBar from "@/components/TopBar";
 import { useStore } from "@/configs";
 import Home from "@/pages/Home";
+import NotFound from "@/pages/NotFound";
 
 function App() {
   const graphQlEndPoint = useStore((state) => state.graphQlEndPoint);
@@ -23,16 +24,17 @@ function App() {
 
   return (
     <React.StrictMode>
-      <BrowserRouter>
-        <Provider value={client}>
+      <Provider value={client}>
+        <HashRouter>
           <ConfigPanel />
           <TopBar />
 
           <Routes>
-            <Route index element={<Home />} />
+            <Route path="/" element={<Home />} />
+            <Route path="*" element={<NotFound />} />
           </Routes>
-        </Provider>
-      </BrowserRouter>
+        </HashRouter>
+      </Provider>
     </React.StrictMode>
   );
 }
