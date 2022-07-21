@@ -8,8 +8,7 @@ export const useStore = create(
     () => ({
       graphQlEndPoint: "http://localhost:4041/graphql",
       stashServer: "http://localhost:9999",
-      apiKey:
-        "yJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOiJhaW9qYW5nIiwiaWF0IjoxNjU1NzIwMjc0LCJzdWIiOiJBUElLZXkifQ.cvk04TwZYyFZXFrHvrz3xilGvNRniwyt7E_sXBjxXpI",
+      apiKey: "",
       performerCatalogueTagId: "264",
       sceneCatalogueTagId: "265",
       performerFilterIds: [],

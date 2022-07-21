@@ -1,14 +1,10 @@
-import {
-  CriterionModifier,
-  FindTagsQuery,
-  useFindPerformersQuery,
-  useFindTagsQuery,
-} from "@dist/graphql";
-import { Listbox, Transition } from "@headlessui/react";
-import { CheckIcon, SelectorIcon, XCircleIcon } from "@heroicons/react/solid";
-import { Fragment, useEffect, useState } from "react";
+import { CriterionModifier, useFindPerformersQuery, useFindTagsQuery } from "@dist/graphql";
+import { useEffect, useState } from "react";
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
+import CatalogueFilters, {
+  PerformerCatalogueSelectorsType,
+} from "@/components/CatalogueFilters";
 import HomeStatus from "@/components/HomeStatus";
 import SkinPeek from "@/components/SkinPeek";
 import { useStore } from "@/configs";
@@ -16,10 +12,17 @@ import { useStore } from "@/configs";
 export default function Home() {
   document.title = "sts-tools | home";
 
-  const performerCatalogueTagId = useStore((state) => state.performerCatalogueTagId);
-
+  const [pageStatus, setPageStatus] = useState<"loading" | "error" | "ready">("loading");
+  const [statusMsg, setStatusMsg] = useState("loading data");
   const [finalChartResult, setFinalChartResult] = useState<FinalChartResult[]>([]);
-  const [performerParametersReply] = useFindTagsQuery({
+  const performerCatalogueTagId = useStore((state) => state.performerCatalogueTagId);
+  const [performerCatalogueSelectors, setPerformerCatalogueSelectors] =
+    useState<PerformerCatalogueSelectorsType>([]);
+  const performerCatalogueSelectedIds: string[] = performerCatalogueSelectors
+    .map((t) => t.activeOption?.id)
+    .filter((t) => typeof t == "string") as string[];
+
+  const [performerCatalogueResult] = useFindTagsQuery({
     variables: {
       tag_filter: {
         parents: {
@@ -29,234 +32,154 @@ export default function Home() {
       },
     },
   });
-
-  const isCatalogueFetched =
-    !performerParametersReply.fetching &&
-    !performerParametersReply.error &&
-    performerParametersReply.data;
-  const [parameterFilters, setParameterFilters] = useState(
-    [] as Array<{
-      activeParameter:
-        | FindTagsQuery["findTags"]["tags"][number]["children"][number]
-        | undefined;
-      fatherTag: FindTagsQuery["findTags"]["tags"][number];
-    }>
-  );
-
-  const filterIds: string[] = parameterFilters
-    .filter((t) => typeof t.activeParameter !== "undefined")
-    .map((t) => t.activeParameter!.id);
-
-  const [filteredPerformers] = useFindPerformersQuery({
+  const [filteredPerformersResult] = useFindPerformersQuery({
     variables: {
       filter: { per_page: -1 },
       performer_filter: {
         tags: {
           modifier: CriterionModifier.IncludesAll,
-          value: filterIds,
+          value: performerCatalogueSelectedIds,
         },
       },
     },
-    pause: !isCatalogueFetched,
   });
+  const isCatalogueFetched =
+    !performerCatalogueResult.fetching &&
+    !performerCatalogueResult.error &&
+    performerCatalogueResult.data;
+  const isPerformersFetched =
+    !filteredPerformersResult.fetching &&
+    !filteredPerformersResult.error &&
+    filteredPerformersResult.data;
 
-  useEffect(() => {
-    if (isCatalogueFetched)
-      setParameterFilters(
-        performerParametersReply.data!.findTags.tags.map((t) => {
-          return {
-            activeParameter: undefined,
-            fatherTag: t,
-          };
-        })
-      );
-  }, [performerParametersReply]);
-
+  // set selectors default values when catalogue is fetched
+  // TODO if wanna restore filtered tag ids from url, here is a good start
   useEffect(() => {
     if (!isCatalogueFetched) return;
-    if (filteredPerformers.fetching) return;
-    if (filteredPerformers.error) return;
-    if (!filteredPerformers.data) return;
 
-    const ps = filteredPerformers.data.findPerformers.performers;
+    const setPerformerCatalogueSelectorsTo: PerformerCatalogueSelectorsType =
+      // "tags" is catalogue level list, like "age","shape"
+      performerCatalogueResult.data!.findTags.tags.map((catalogue) => {
+        // here "catalogue" contains parameter level tags in its "children",like "old","young"
+        const { children, ...omitedCatalogueFrom } = catalogue;
+        return {
+          catalogue: omitedCatalogueFrom,
+          activeOption: undefined,
+          options: children,
+        };
+      });
+    setPerformerCatalogueSelectors(setPerformerCatalogueSelectorsTo);
+  }, [performerCatalogueResult]);
 
-    const res: FinalChartResult[] = parameterFilters.map((filter) => {
-      const types = filter.fatherTag.children.map((t) => {
-        const shouldContainedTagIds = Array.from(new Set([...filterIds, t.id]));
-        const performersWithThem = ps.filter(
+  // init chart default values when catalogues and performers both fetched
+  // only this step is done means this page is ready to display
+  useEffect(() => {
+    if (!isCatalogueFetched || !isPerformersFetched) return;
+
+    const performers = filteredPerformersResult.data!.findPerformers.performers;
+
+    const chartDatas: FinalChartResult[] = performerCatalogueSelectors.map((selector) => {
+      // arrays with name and corresponding count in an object of performers for each
+      // parameter of this catalogue
+      const types = selector.options.map((option) => {
+        const shouldContainedTagIds = Array.from(
+          new Set([...performerCatalogueSelectedIds, option.id])
+        );
+        const performersWithThoseTags = performers.filter(
           (p) =>
             p.tags.map((t) => t.id).filter((value) => shouldContainedTagIds.includes(value))
               .length === shouldContainedTagIds.length
         );
         return {
-          type: t.name,
-          count: performersWithThem.length,
+          type: option.name,
+          count: performersWithThoseTags.length,
         };
       });
+
+      // cobine catalogue name and its count array, to a new array to map charts
       return {
-        catalogue: filter.fatherTag.name,
+        catalogue: selector.activeOption?.name || "unknown catalogue",
         types,
       };
     });
-    res.forEach((r) => r.types.sort((a, b) => b.count - a.count));
-    setFinalChartResult(res);
-  }, [filteredPerformers, isCatalogueFetched]);
 
-  function ParameterSelector(props: {
-    filter: typeof parameterFilters[number];
-    onSelectedChange: (
-      willSetParameter:
-        | typeof parameterFilters[number]["fatherTag"]["children"][number]
-        | undefined
-    ) => void;
-  }) {
-    const options = props.filter.fatherTag.children;
+    // reorder sort in chart
+    chartDatas.forEach((r) => r.types.sort((a, b) => b.count - a.count));
+    setFinalChartResult(chartDatas);
 
-    return (
-      <Listbox value={props.filter.activeParameter} onChange={props.onSelectedChange}>
-        <div className="flex items-center">
-          <div className="mr-4 whitespace-nowrap text-sm text-slate-500">
-            {props.filter.fatherTag.name}
-          </div>
-          <div className="relative w-full">
-            <Listbox.Button
-              className="relative w-full cursor-default rounded border py-2 
-              pl-3 pr-10 text-left sm:text-sm"
-            >
-              <span className={`block truncate text-slate-300`}>
-                {props.filter.activeParameter?.name || "Not Selected"}
-              </span>
-              <span
-                className="pointer-events-none absolute inset-y-0 right-0 flex items-center 
-                pr-2"
-              >
-                <SelectorIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
-              </span>
-            </Listbox.Button>
-            <Transition
-              as={Fragment}
-              leave="transition ease-in duration-100"
-              leaveFrom="opacity-100"
-              leaveTo="opacity-0"
-            >
-              <Listbox.Options
-                className="absolute z-30 mt-2 max-h-60 w-full overflow-auto 
-                rounded-md bg-[#30404d] py-1 text-base sm:text-sm"
-              >
-                {options.map((option) => (
-                  <Listbox.Option
-                    key={option.id}
-                    className={({ active }) =>
-                      `relative cursor-default select-none py-2 pl-10 pr-4 ${
-                        active ? "bg-[#137cbd] text-white" : "text-slate-300"
-                      }`
-                    }
-                    value={option}
-                  >
-                    {({ selected }) => (
-                      <>
-                        <span
-                          className={`block truncate ${
-                            selected ? "font-medium" : "font-normal"
-                          }`}
-                        >
-                          {option.name}
-                        </span>
-                        {selected ? (
-                          <span
-                            className="absolute inset-y-0 left-0 flex items-center pl-3 
-                          text-amber-600"
-                          >
-                            <CheckIcon className="h-5 w-5" aria-hidden="true" />
-                          </span>
-                        ) : null}
-                      </>
-                    )}
-                  </Listbox.Option>
-                ))}
-              </Listbox.Options>
-            </Transition>
-          </div>
+    // ux: when first set ready there won't be 'loading' anymore
+    setPageStatus("ready");
+  }, [isPerformersFetched, isCatalogueFetched]);
 
-          <button
-            className={`${
-              props.filter.activeParameter ? "text-slate-300" : "text-slate-500"
-            } ml-2 transition-colors`}
-            onClick={() => props.onSelectedChange(undefined)}
-          >
-            <XCircleIcon className="h-6 w-6" />
-          </button>
-        </div>
-      </Listbox>
-    );
-  }
+  // catch error when any fetch failed
+  useEffect(() => {
+    if (performerCatalogueResult.error) {
+      setPageStatus("error");
+      setStatusMsg(performerCatalogueResult.error.message);
+      return;
+    }
+    if (filteredPerformersResult.error) {
+      setPageStatus("error");
+      setStatusMsg(filteredPerformersResult.error.message);
+      return;
+    }
+  }, [filteredPerformersResult, performerCatalogueResult]);
 
   return (
-    <div className="min-h-screen bg-[#202b33]">
-      {performerParametersReply.fetching ? (
-        <HomeStatus title="Loading" message="Fetching Data, please wait." />
-      ) : typeof performerParametersReply.error !== "undefined" ||
-        typeof performerParametersReply.data === "undefined" ? (
+    <div className="min-h-screen">
+      {pageStatus !== "ready" ? (
         <HomeStatus
-          title="Request Error"
-          message={performerParametersReply.error?.message || "Encountered an unknown error."}
+          title={`${pageStatus.slice(0, 1).toUpperCase()}${pageStatus.slice(1)}`}
+          message={statusMsg}
         />
       ) : (
         <div>
-          <div className="px-4">
-            <div className="grid grid-cols-1 gap-x-8 gap-y-4 py-8 md:grid-cols-2 xl:grid-cols-4">
-              {parameterFilters.map((f) => {
-                return (
-                  <ParameterSelector
-                    key={f.fatherTag.id}
-                    filter={f}
-                    onSelectedChange={(newParamter) => {
-                      f.activeParameter = newParamter;
-                      setParameterFilters([...parameterFilters]);
-                    }}
-                  />
-                );
-              })}
-            </div>
+          <CatalogueFilters
+            filters={performerCatalogueSelectors}
+            onFiltersChange={(newFilters) => {
+              setPerformerCatalogueSelectors([...newFilters]);
+            }}
+          />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4">
-              {finalChartResult.map((r, index) => (
-                <ResponsiveContainer key={index} height={300}>
-                  <BarChart
-                    data={r.types}
-                    margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
-                    style={{
-                      fontSize: "12px",
-                    }}
-                  >
-                    <XAxis dataKey="type" />
-                    <YAxis />
-                    <Tooltip />
-                    <Bar dataKey="count" fill="#8884d8" barSize={60} />
-                  </BarChart>
-                </ResponsiveContainer>
-              ))}
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4">
+            {finalChartResult.map((r, index) => (
+              <ResponsiveContainer key={index} height={300}>
+                <BarChart
+                  data={r.types}
+                  margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
+                  style={{
+                    fontSize: "12px",
+                  }}
+                >
+                  <XAxis dataKey="type" />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="count" fill="#8884d8" barSize={60} />
+                </BarChart>
+              </ResponsiveContainer>
+            ))}
           </div>
 
           <div className="grid grid-cols-1 gap-[2px] md:grid-cols-4 xl:grid-cols-6">
-            {filteredPerformers.data?.findPerformers.performers.map((p) => (
+            {filteredPerformersResult.data?.findPerformers.performers.map((p) => (
               <SkinPeek
-                tagIds={filterIds}
+                filteredTagIds={performerCatalogueSelectedIds}
                 key={p.id}
                 performer={p}
                 onTagClick={(tag) => {
-                  const CataloguesWithThisParameter = parameterFilters.filter((f) => {
-                    const tags = f.fatherTag.children.filter((t) => t.id === tag.id);
-                    return tags.length > 0;
-                  });
+                  const CataloguesWithThisParameter = performerCatalogueSelectors.filter(
+                    (f) => {
+                      const tags = f.options.filter((t) => t.id === tag.id);
+                      return tags.length > 0;
+                    }
+                  );
 
                   CataloguesWithThisParameter.map((c) => {
-                    if (c.activeParameter && c.activeParameter.id === tag.id)
-                      c.activeParameter = undefined;
-                    else c.activeParameter = c.fatherTag.children.find((t) => t.id === tag.id);
+                    if (c.activeOption && c.activeOption.id === tag.id)
+                      c.activeOption = undefined;
+                    else c.activeOption = c.options.find((t) => t.id === tag.id);
                   });
-                  setParameterFilters([...parameterFilters]);
+                  setPerformerCatalogueSelectors([...performerCatalogueSelectors]);
                 }}
               />
             ))}

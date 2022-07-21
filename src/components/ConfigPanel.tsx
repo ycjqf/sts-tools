@@ -143,7 +143,6 @@ function ConfigItem(props: {
         placeholder={props.placeholder}
         defaultValue={props.originalValue}
         onChange={(e) => {
-          console.log(e);
           props.onChange(e.currentTarget.value);
         }}
       />
