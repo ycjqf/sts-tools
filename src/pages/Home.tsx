@@ -1,7 +1,7 @@
 import { CriterionModifier, useFindPerformersQuery, useFindTagsQuery } from "@dist/graphql";
 import { useEffect, useState } from "react";
-import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
+import CatalogueCharts, { FinalChartResultType } from "@/components/CatalogueCharts";
 import CatalogueFilters, {
   PerformerCatalogueSelectorsType,
 } from "@/components/CatalogueFilters";
@@ -14,7 +14,7 @@ export default function Home() {
 
   const [pageStatus, setPageStatus] = useState<"loading" | "error" | "ready">("loading");
   const [statusMsg, setStatusMsg] = useState("loading data");
-  const [finalChartResult, setFinalChartResult] = useState<FinalChartResult[]>([]);
+  const [finalChartResults, setFinalChartResults] = useState<FinalChartResultType[]>([]);
   const performerCatalogueTagId = useStore((state) => state.performerCatalogueTagId);
   const [performerCatalogueSelectors, setPerformerCatalogueSelectors] =
     useState<PerformerCatalogueSelectorsType>([]);
@@ -78,23 +78,26 @@ export default function Home() {
 
     const performers = filteredPerformersResult.data!.findPerformers.performers;
 
-    const chartDatas: FinalChartResult[] = performerCatalogueSelectors.map((selector) => {
+    const chartDatas: FinalChartResultType[] = performerCatalogueSelectors.map((selector) => {
       // arrays with name and corresponding count in an object of performers for each
       // parameter of this catalogue
-      const types = selector.options.map((option) => {
-        const shouldContainedTagIds = Array.from(
-          new Set([...performerCatalogueSelectedIds, option.id])
-        );
-        const performersWithThoseTags = performers.filter(
-          (p) =>
-            p.tags.map((t) => t.id).filter((value) => shouldContainedTagIds.includes(value))
-              .length === shouldContainedTagIds.length
-        );
-        return {
-          type: option.name,
-          count: performersWithThoseTags.length,
-        };
-      });
+      const types = selector.options
+        .map((option) => {
+          const shouldContainedTagIds = Array.from(
+            new Set([...performerCatalogueSelectedIds, option.id])
+          );
+          const performersWithThoseTags = performers.filter(
+            (p) =>
+              p.tags.map((t) => t.id).filter((value) => shouldContainedTagIds.includes(value))
+                .length === shouldContainedTagIds.length
+          );
+          return {
+            type: option.name,
+            count: performersWithThoseTags.length,
+          };
+        })
+        // filter those with count of 0
+        .filter((t) => t.count !== 0);
 
       // cobine catalogue name and its count array, to a new array to map charts
       return {
@@ -105,7 +108,8 @@ export default function Home() {
 
     // reorder sort in chart
     chartDatas.forEach((r) => r.types.sort((a, b) => b.count - a.count));
-    setFinalChartResult(chartDatas);
+    // filter those with type count of 1
+    setFinalChartResults(chartDatas.filter((t) => t.types.length !== 1));
 
     // ux: when first set ready there won't be 'loading' anymore
     setPageStatus("ready");
@@ -140,25 +144,7 @@ export default function Home() {
               setPerformerCatalogueSelectors([...newFilters]);
             }}
           />
-
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4">
-            {finalChartResult.map((r, index) => (
-              <ResponsiveContainer key={index} height={300}>
-                <BarChart
-                  data={r.types}
-                  margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
-                  style={{
-                    fontSize: "12px",
-                  }}
-                >
-                  <XAxis dataKey="type" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="count" fill="#8884d8" barSize={60} />
-                </BarChart>
-              </ResponsiveContainer>
-            ))}
-          </div>
+          <CatalogueCharts finalChartResults={finalChartResults} />
 
           <div className="grid grid-cols-1 gap-[2px] md:grid-cols-4 xl:grid-cols-6">
             {filteredPerformersResult.data?.findPerformers.performers.map((p) => (
@@ -188,12 +174,4 @@ export default function Home() {
       )}
     </div>
   );
-}
-
-interface FinalChartResult {
-  catalogue: string;
-  types: {
-    type: string;
-    count: number;
-  }[];
 }
