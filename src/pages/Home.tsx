@@ -7,6 +7,7 @@ import {
   useFindTagsQuery,
 } from "@dist/graphql";
 import { createContext, useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useClient } from "urql";
 
 import CatalogueCharts, { FinalChartResultType } from "@/components/CatalogueCharts";
@@ -23,15 +24,14 @@ export default function Home() {
   document.title = "sts-tools | home";
 
   const client = useClient();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tagIdsInRoute = searchParams.get("ids")?.split(".") || [];
   const [pageStatus, setPageStatus] = useState<"loading" | "error" | "ready">("loading");
   const [statusMsg, setStatusMsg] = useState("loading data");
   const [finalChartResults, setFinalChartResults] = useState<FinalChartResultType[]>([]);
   const performerCatalogueTagId = useStore((state) => state.performerCatalogueTagId);
   const [performerCatalogueSelectors, setPerformerCatalogueSelectors] =
     useState<PerformerCatalogueSelectorsType>([]);
-  const performerCatalogueSelectedIds: string[] = performerCatalogueSelectors
-    .map((t) => t.activeOption?.id)
-    .filter((t) => typeof t == "string") as string[];
 
   const [performerCatalogueResult] = useFindTagsQuery({
     variables: {
@@ -49,7 +49,7 @@ export default function Home() {
       performer_filter: {
         tags: {
           modifier: CriterionModifier.IncludesAll,
-          value: performerCatalogueSelectedIds,
+          value: tagIdsInRoute,
         },
       },
     },
@@ -63,27 +63,39 @@ export default function Home() {
     !filteredPerformersResult.error &&
     filteredPerformersResult.data;
 
-  // set selectors default values when catalogue is fetched
-  // TODO if wanna restore filtered tag ids from url, here is a good start
+  function mixIds(addIds: string[], removeIds: string[]) {
+    const newIds = Array.from(
+      new Set(tagIdsInRoute.filter((id) => !removeIds.includes(id)).concat(addIds))
+    );
+    console.log(newIds);
+    if (newIds.length === 0) setSearchParams({});
+    else
+      setSearchParams({
+        ids: newIds.join("."),
+      });
+  }
+
+  // the first action
+  // set selectors values when catalogue is fetched
   useEffect(() => {
     if (!isCatalogueFetched) return;
 
-    const setPerformerCatalogueSelectorsTo: PerformerCatalogueSelectorsType =
+    const newPerformerCatalogueSelectors: PerformerCatalogueSelectorsType =
       // "tags" is catalogue level list, like "age","shape"
       performerCatalogueResult.data!.findTags.tags.map((catalogue) => {
         // here "catalogue" contains parameter level tags in its "children",like "old","young"
         const { children, ...omitedCatalogueFrom } = catalogue;
         return {
           catalogue: omitedCatalogueFrom,
-          activeOption: undefined,
           options: children,
         };
       });
-    setPerformerCatalogueSelectors(setPerformerCatalogueSelectorsTo);
-  }, [performerCatalogueResult]);
+    setPerformerCatalogueSelectors(newPerformerCatalogueSelectors);
+  }, [isCatalogueFetched]);
 
   // init chart default values when catalogues and performers both fetched
   // only this step is done means this page is ready to display
+  // triggered after filter values set
   useEffect(() => {
     if (!isCatalogueFetched || !isPerformersFetched) return;
 
@@ -94,9 +106,7 @@ export default function Home() {
       // parameter of this catalogue
       const types = selector.options
         .map((option) => {
-          const shouldContainedTagIds = Array.from(
-            new Set([...performerCatalogueSelectedIds, option.id])
-          );
+          const shouldContainedTagIds = Array.from(new Set([...tagIdsInRoute, option.id]));
           const performersWithThoseTags = performers.filter(
             (p) =>
               p.tags.map((t) => t.id).filter((value) => shouldContainedTagIds.includes(value))
@@ -122,11 +132,9 @@ export default function Home() {
     // filter those with type count of 1
     setFinalChartResults(chartDatas.filter((t) => t.types.length !== 1));
 
-    // ux: when first set ready there won't be 'loading' anymore
-
     // fix performer tags
     // only check for filter ids empty
-    if (performerCatalogueSelectedIds.length > 0) {
+    if (tagIdsInRoute.length > 0) {
       setPageStatus("ready");
       return;
     }
@@ -190,9 +198,9 @@ export default function Home() {
         });
     });
     setPageStatus("ready");
-  }, [isPerformersFetched, isCatalogueFetched]);
+  }, [isPerformersFetched, isCatalogueFetched, performerCatalogueSelectors]);
 
-  // catch error when any fetch failed
+  // set page as error when any fetch failed
   useEffect(() => {
     if (performerCatalogueResult.error) {
       setPageStatus("error");
@@ -217,33 +225,21 @@ export default function Home() {
         <HomeContext.Provider value={performerCatalogueSelectors}>
           <div>
             <CatalogueFilters
+              activeIds={tagIdsInRoute}
               filters={performerCatalogueSelectors}
-              onFiltersChange={(newFilters) => {
-                setPerformerCatalogueSelectors([...newFilters]);
-              }}
+              onTagClicked={mixIds}
             />
             <CatalogueCharts finalChartResults={finalChartResults} />
 
-            <div className="grid grid-cols-1 gap-[2px] md:grid-cols-4 xl:grid-cols-6">
+            <div className="grid grid-cols-1 gap-[2px] md:grid-cols-3 xl:grid-cols-6">
               {filteredPerformersResult.data?.findPerformers.performers.map((p) => (
                 <SkinPeek
-                  filteredTagIds={performerCatalogueSelectedIds}
+                  filteredTagIds={tagIdsInRoute}
                   key={p.id}
                   performer={p}
                   onTagClick={(tag) => {
-                    const CataloguesWithThisParameter = performerCatalogueSelectors.filter(
-                      (f) => {
-                        const tags = f.options.filter((t) => t.id === tag.id);
-                        return tags.length > 0;
-                      }
-                    );
-
-                    CataloguesWithThisParameter.map((c) => {
-                      if (c.activeOption && c.activeOption.id === tag.id)
-                        c.activeOption = undefined;
-                      else c.activeOption = c.options.find((t) => t.id === tag.id);
-                    });
-                    setPerformerCatalogueSelectors([...performerCatalogueSelectors]);
+                    if (tagIdsInRoute.includes(tag.id)) mixIds([], [tag.id]);
+                    else mixIds([tag.id], []);
                   }}
                 />
               ))}

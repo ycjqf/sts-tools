@@ -2,10 +2,9 @@ import { FindTagsQuery, useTagUpdateMutation } from "@dist/graphql";
 import { useEffect } from "react";
 
 function CatalogueFilter(props: {
+  activeIds: string[];
   selector: PerformerCatalogueSelectorsType[number];
-  onSelectedChange: (
-    newActiveOption: PerformerCatalogueSelectorsType[number]["activeOption"]
-  ) => void;
+  onTagClicked: (addIds: string[], removeIds: string[]) => void;
 }) {
   const [updateTagResult, updateTag] = useTagUpdateMutation();
 
@@ -40,17 +39,17 @@ function CatalogueFilter(props: {
         {props.selector.options.map((option) => (
           <span
             className={`${
-              props.selector.activeOption && props.selector.activeOption.id === option.id
-                ? "text-[#47afff]"
-                : "text-slate-300"
+              props.activeIds.includes(option.id) ? "text-[#47afff]" : "text-slate-300"
             } cursor-pointer`}
             key={option.id}
             onClick={() => {
-              props.onSelectedChange(
-                props.selector.activeOption && props.selector.activeOption.id === option.id
-                  ? undefined
-                  : option
-              );
+              const otherParameterIds = props.selector.options
+                .map((o) => o.id)
+                .filter((id) => id !== option.id);
+
+              if (props.activeIds.includes(option.id))
+                props.onTagClicked([], [...otherParameterIds, option.id]);
+              else props.onTagClicked([option.id], otherParameterIds);
             }}
             onContextMenu={(e) => {
               e.preventDefault();
@@ -66,8 +65,9 @@ function CatalogueFilter(props: {
 }
 
 export default function CatalogueFilters(props: {
+  activeIds: string[];
   filters: PerformerCatalogueSelectorsType;
-  onFiltersChange: (newFilters: PerformerCatalogueSelectorsType) => void;
+  onTagClicked: (addIds: string[], removeIds: string[]) => void;
 }) {
   return (
     <div
@@ -79,10 +79,8 @@ export default function CatalogueFilters(props: {
           <CatalogueFilter
             key={f.catalogue.id}
             selector={f}
-            onSelectedChange={(newParamter) => {
-              f.activeOption = newParamter;
-              props.onFiltersChange(props.filters);
-            }}
+            activeIds={props.activeIds}
+            onTagClicked={props.onTagClicked}
           />
         );
       })}
@@ -92,6 +90,5 @@ export default function CatalogueFilters(props: {
 
 export type PerformerCatalogueSelectorsType = {
   catalogue: Omit<FindTagsQuery["findTags"]["tags"][number], "children">;
-  activeOption: undefined | FindTagsQuery["findTags"]["tags"][number]["children"][number];
   options: FindTagsQuery["findTags"]["tags"][number]["children"];
 }[];

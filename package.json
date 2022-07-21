@@ -23,6 +23,7 @@
     "graphql": "^16.5.0",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
+    "react-router-dom": "^6.3.0",
     "recharts": "^2.1.11",
     "urql": "^2.2.2",
     "zustand": "^4.0.0-rc.3"

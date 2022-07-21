@@ -1,5 +1,6 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { createClient, Provider } from "urql";
 
 import ConfigPanel from "@/components/ConfigPanel";
@@ -22,12 +23,16 @@ function App() {
 
   return (
     <React.StrictMode>
-      <Provider value={client}>
-        <ConfigPanel />
+      <BrowserRouter>
+        <Provider value={client}>
+          <ConfigPanel />
+          <TopBar />
 
-        <TopBar />
-        <Home />
-      </Provider>
+          <Routes>
+            <Route index element={<Home />} />
+          </Routes>
+        </Provider>
+      </BrowserRouter>
     </React.StrictMode>
   );
 }

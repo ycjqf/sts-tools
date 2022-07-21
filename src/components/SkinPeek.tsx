@@ -94,18 +94,19 @@ export default function SkinPeek(props: {
 
                 <Listbox.Options
                   className="absolute z-[9999] mt-1 w-full overflow-auto rounded 
-                bg-white py-1 text-base"
+                bg-white text-base"
                 >
                   {selectors
                     .find((selector) => selector.options.map((o) => o.id).includes(t.id))
                     ?.options.map((o) => (
                       <Listbox.Option key={o.id} value={o.id} disabled={o.id === t.id}>
-                        <span
-                          className="cursor-pointer whitespace-nowrap rounded bg-opacity-75 px-[2px]
-                        py-[2px] text-[10px]"
+                        <div
+                          className="h-full cursor-pointer whitespace-nowrap bg-slate-200 
+                          bg-opacity-75 px-[4px] py-[2px] text-[10px] text-slate-500 
+                          hover:bg-slate-400 hover:text-slate-800"
                         >
                           {o.name}
-                        </span>
+                        </div>
                       </Listbox.Option>
                     ))}
                 </Listbox.Options>
