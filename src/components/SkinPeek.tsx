@@ -19,7 +19,7 @@ export default function SkinPeek(props: {
 
   return (
     <div>
-      <div className="relative h-0 w-full pt-[120%]">
+      <div className="relative h-0 w-full pt-[150%]">
         <div className="absolute inset-0">
           {props.performer.image_path && (
             <img

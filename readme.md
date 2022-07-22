@@ -20,3 +20,10 @@ Add code below to nginx config file. For homebrew(apple sillicon) installed, its
        }
     }
 ```
+
+### build image
+
+```shell
+docker build -t sts-tools:1.0 .
+docker run -d -p 8798:8798 --name sts-tools sts-tools:1.0
+```

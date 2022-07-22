@@ -4,8 +4,8 @@
   "version": "0.0.0",
   "scripts": {
     "dev": "concurrently 'npm:watch:*'",
-    "build": "tsc && vite build",
-    "preview": "vite preview",
+    "build": "graphql-codegen && npx tailwindcss -i tailwind.input.css -o ./dist/output.css && tsc && vite build",
+    "preview": "vite preview --port 8798 --host",
     "lint": "npx eslint src/**/*.{ts,tsx}",
     "prettier": "npx prettier --write .",
     "generate": "graphql-codegen",
