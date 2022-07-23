@@ -4,7 +4,6 @@ WORKDIR /usr/app
 
 COPY ./ ./
 RUN npm install
-RUN npm i
 RUN npm run build
 
 ENTRYPOINT npm run preview
