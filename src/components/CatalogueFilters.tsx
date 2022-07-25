@@ -3,7 +3,7 @@ import { useEffect } from "react";
 
 function CatalogueFilter(props: {
   activeIds: string[];
-  selector: PerformerCatalogueSelectorsType[number];
+  selector: PerfCatalogueSelectorsType[number];
   onTagClicked: (addIds: string[], removeIds: string[]) => void;
 }) {
   const [updateTagResult, updateTag] = useTagUpdateMutation();
@@ -66,7 +66,7 @@ function CatalogueFilter(props: {
 
 export default function CatalogueFilters(props: {
   activeIds: string[];
-  filters: PerformerCatalogueSelectorsType;
+  filters: PerfCatalogueSelectorsType;
   onTagClicked: (addIds: string[], removeIds: string[]) => void;
 }) {
   return (
@@ -88,7 +88,7 @@ export default function CatalogueFilters(props: {
   );
 }
 
-export type PerformerCatalogueSelectorsType = {
+export type PerfCatalogueSelectorsType = {
   catalogue: Omit<FindTagsQuery["findTags"]["tags"][number], "children">;
   options: FindTagsQuery["findTags"]["tags"][number]["children"];
 }[];

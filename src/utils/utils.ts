@@ -1,3 +1,5 @@
+import { UseQueryState } from "urql";
+
 export function hexesBySLA(saturation: number, lightness: number, amount: number) {
   const colors = [];
   const huedelta = Math.trunc(360 / amount);
@@ -36,4 +38,39 @@ export function hexesBySLA(saturation: number, lightness: number, amount: number
   }
 
   return colors;
+}
+
+export function getResStatus(res: UseQueryState):
+  | {
+      status: "loading" | "ready";
+    }
+  | {
+      status: "error";
+      msg: string;
+    } {
+  if (res.fetching) {
+    return {
+      status: "loading",
+    };
+  }
+
+  const { error } = res;
+  if (error) {
+    return {
+      status: "error",
+      msg: error.message,
+    };
+  }
+
+  const { data } = res;
+  if (!data) {
+    return {
+      status: "error",
+      msg: "no data",
+    };
+  }
+
+  return {
+    status: "ready",
+  };
 }
