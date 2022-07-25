@@ -85,11 +85,9 @@ export default function Home() {
 
     const performers = filteredPerfsRes.data?.findPerformers.performers || [];
     // init chart default values
-    perfSelectorsToChartDatas(perfCatalogueSelectors, performers).then(
-      (newFinalChartResults) => {
-        setFinalChartResults(newFinalChartResults);
-      }
-    );
+    const newFinalChartResults = perfSelectorsToChartDatas(perfCatalogueSelectors, performers);
+    setFinalChartResults(newFinalChartResults);
+    setPageStatus("ready");
   }, loadables);
 
   return (

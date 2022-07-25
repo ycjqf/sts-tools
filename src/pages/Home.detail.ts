@@ -24,10 +24,10 @@ export function perfCatalogueResToSelectors(
   return perfCatalogueSelectors;
 }
 
-export async function perfSelectorsToChartDatas(
+export function perfSelectorsToChartDatas(
   selectors: PerfCatalogueSelectorsType,
   perfs: FindPerformersQuery["findPerformers"]["performers"]
-): Promise<FinalChartResultType[]> {
+): FinalChartResultType[] {
   const chartDatas: FinalChartResultType[] = selectors.map((selector) => {
     // arrays with name and corresponding count in an object of performers for each
     // parameter of this catalogue
@@ -57,6 +57,7 @@ export async function perfSelectorsToChartDatas(
   // remove charts with only one option
   return chartDatas.filter((t) => t.types.length > 1);
 }
+
 export function getDefaultNameForPerfCatalogue(selector: PerfCatalogueSelectorsType[number]) {
   return `#${selector.catalogue.name.toLowerCase()}`;
 }
